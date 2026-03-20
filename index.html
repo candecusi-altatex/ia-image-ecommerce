@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Ecommerce - Consistencia Total</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Editor de Fotos IA</h1>
+        <p class="text-gray-600 mb-8">Elimina fondos y asegura color #F2F2F2 automáticamente.</p>
+
+        <div class="border-dashed border-4 border-gray-200 p-12 text-center rounded-lg mb-6">
+            <input type="file" id="fotoInput" accept="image/*" class="hidden">
+            <label for="fotoInput" class="cursor-pointer bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition">
+                Seleccionar Foto
+            </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <p class="font-semibold mb-2 text-center">Original</p>
+                <img id="previewOriginal" class="w-full h-64 object-contain bg-gray-50 rounded-lg">
+            </div>
+            <div>
+                <p class="font-semibold mb-2 text-center">Resultado IA (#F2F2F2)</p>
+                <div id="loading" class="hidden text-center p-20 text-blue-600 font-bold">Procesando...</div>
+                <img id="previewResultado" class="w-full h-64 object-contain bg-gray-50 rounded-lg">
+            </div>
+        </div>
+
+        <button id="btnProcesar" class="w-full mt-8 bg-green-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-green-700 disabled:bg-gray-400">
+            Aplicar Magia IA
+        </button>
+    </div>
+
+    <script>
+        // REEMPLAZA ESTA URL CON TU "DIRECT URL" DE HUGGING FACE
+        const API_URL = "TU_URL_AQUI/procesar";
+
+        const input = document.getElementById('fotoInput');
+        const btn = document.getElementById('btnProcesar');
+        const resImg = document.getElementById('previewResultado');
+        const loader = document.getElementById('loading');
+
+        input.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = () => document.getElementById('previewOriginal').src = reader.result;
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        btn.onclick = async () => {
+            if (!input.files[0]) return alert("Sube una foto primero");
+            
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resImg.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                // Mostrar la imagen procesada
+                resImg.src = "data:image/jpeg;base64," + data.image_base64;
+                resImg.classList.remove('hidden');
+            } catch (err) {
+                alert("Error conectando con la IA. Asegúrate de que el Space esté en 'Running'");
+            } finally {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
