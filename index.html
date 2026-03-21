@@ -3,80 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Ecommerce - Consistencia Total</title>
+    <title>IA Ecommerce - Procesamiento Masivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .grid-comparacion {
+            display: inline-flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-bottom: 2px solid #eee;
+        }
+        .img-preview {
+            width: 100%;
+            height: 220px;
+            object-fit: contain;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .contenedorResultados{
+            text-align: center;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-8">
-    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Editor de Fotos IA</h1>
-        <p class="text-gray-600 mb-8">Elimina fondos y asegura color #F2F2F2 automáticamente.</p>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-xl">
+        <header class="mb-8 border-b pb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Editor Masivo IA #F2F2F2</h1>
+            <p class="text-gray-500">Selecciona múltiples archivos y la IA los procesará uno por uno.</p>
+        </header>
 
-        <div class="border-dashed border-4 border-gray-200 p-12 text-center rounded-lg mb-6">
-            <input type="file" id="fotoInput" accept="image/*" class="hidden">
-            <label for="fotoInput" class="cursor-pointer bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition">
-                Seleccionar Foto
+        <div class="flex flex-col items-center justify-center border-3 border-dashed border-blue-200 rounded-xl p-10 bg-blue-50 hover:bg-blue-100 transition-all mb-8">
+            <input type="file" id="fotoInput" accept="image/*" multiple class="hidden">
+            <label for="fotoInput" class="cursor-pointer bg-blue-600 text-white px-8 py-4 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">
+                Subir Fotos (Selección Múltiple)
             </label>
+            <p id="contador" class="mt-4 text-blue-800 font-medium"></p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-                <p class="font-semibold mb-2 text-center">Original</p>
-                <img id="previewOriginal" class="w-full h-64 object-contain bg-gray-50 rounded-lg">
+        <div id="contenedorResultados" class="space-y-4">
             </div>
-            <div>
-                <p class="font-semibold mb-2 text-center">Resultado IA (#F2F2F2)</p>
-                <div id="loading" class="hidden text-center p-20 text-blue-600 font-bold">Procesando...</div>
-                <img id="previewResultado" class="w-full h-64 object-contain bg-gray-50 rounded-lg">
-            </div>
-        </div>
-
-        <button id="btnProcesar" class="w-full mt-8 bg-green-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-green-700 disabled:bg-gray-400">
-            Aplicar Magia IA
-        </button>
     </div>
 
     <script>
-        // REEMPLAZA ESTA URL CON TU "DIRECT URL" DE HUGGING FACE
-        const API_URL = "https://candecusichk-ia-images-ecommerce.hf.space/procesar";
+        // TU URL DE HUGGING FACE
+        const API_URL = "https://cleta-epineurial-noninertly.ngrok-free.dev/procesar";
 
         const input = document.getElementById('fotoInput');
-        const btn = document.getElementById('btnProcesar');
-        const resImg = document.getElementById('previewResultado');
-        const loader = document.getElementById('loading');
+        const contenedor = document.getElementById('contenedorResultados');
+        const contadorTexto = document.getElementById('contador');
 
-        input.onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = () => document.getElementById('previewOriginal').src = reader.result;
-            reader.readAsDataURL(e.target.files[0]);
+        input.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            contadorTexto.innerText = `Preparadas ${files.length} imágenes...`;
+            
+            // Procesamos una por una
+            for (const file of files) {
+                await procesarImagen(file);
+            }
+            
+            contadorTexto.innerText = "¡Procesamiento finalizado!";
         };
 
-        btn.onclick = async () => {
-            if (!input.files[0]) return alert("Sube una foto primero");
+        async function procesarImagen(file) {
+            // 1. Crear la fila en la interfaz
+            const row = document.createElement('div');
+            row.className = 'grid-comparacion';
             
-            btn.disabled = true;
-            loader.classList.remove('hidden');
-            resImg.classList.add('hidden');
+            // Generar URL temporal para la original
+            const originalUrl = URL.createObjectURL(file);
 
+            row.innerHTML = `
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-2">Original: ${file.name}</p>
+                    <img src="${originalUrl}" class="img-preview">
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-blue-500 uppercase mb-2 text-center">Resultado IA (#F2F2F2)</p>
+                    <div class="loader text-center p-20 font-bold text-blue-400">Procesando...</div>
+                    <img class="img-preview hidden res-img">
+                    <div class="text-center mt-2">
+                        <a class="btn-download hidden bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-black cursor-pointer">Descargar JPEG</a>
+                    </div>
+                </div>
+            `;
+            
+            contenedor.prepend(row); // Las nuevas aparecen arriba
+
+            const resImg = row.querySelector('.res-img');
+            const loader = row.querySelector('.loader');
+            const btnDownload = row.querySelector('.btn-download');
+
+            // 2. Enviar a la API
             const formData = new FormData();
-            formData.append('file', input.files[0]);
+            formData.append('file', file);
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     body: formData
                 });
-                const data = await response.json();
                 
-                // Mostrar la imagen procesada
-                resImg.src = "data:image/jpeg;base64," + data.image_base64;
-                resImg.classList.remove('hidden');
+                const data = await response.json();
+
+                if(data.image_base64) {
+                    const base64Final = "data:image/jpeg;base64," + data.image_base64;
+                    resImg.src = base64Final;
+                    
+                    // Configurar botón descarga
+                    btnDownload.href = base64Final;
+                    btnDownload.download = `procesada_${file.name.split('.')[0]}.jpg`;
+                    
+                    // Mostrar resultado
+                    loader.classList.add('hidden');
+                    resImg.classList.remove('hidden');
+                    btnDownload.classList.remove('hidden');
+                }
             } catch (err) {
-                alert("Error conectando con la IA. Asegúrate de que el Space esté en 'Running'");
-            } finally {
-                loader.classList.add('hidden');
-                btn.disabled = false;
+                loader.innerText = "Error al procesar esta imagen";
+                loader.classList.add('text-red-500');
             }
-        };
+        }
     </script>
 </body>
 </html>
